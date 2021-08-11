@@ -6,11 +6,55 @@ import re
 from collections import namedtuple
 import webbrowser
 
-UrlPattern=namedtuple('UrlPattern','findWhat replaceWith lineNumberSection')
+UrlPattern=namedtuple('UrlPattern','name findWhat replaceWith linkTypeFile linkTypeDir lineNumberSection')
 
 urlPatterns=[
   UrlPattern(**{
-    # stash pattern
+    # git@github.com:okar1/git_web_link.git
+    "name": "github ssh",
+    "findWhat": r"""^
+        # ssh
+        (ssh://)?
+        # git@, optional
+        ((\w|_|-|\.)+@)?
+        # github.com
+        (?P<host>github(\w|_|-|\.)+)
+        # :okar1
+        :
+        (?P<login>(\w|_|-|\.)+)
+        /
+        # git_web_link.git
+        (?P<group_and_repo>(\w|_|-|\.|/)+)
+        .git
+        $""",
+    "replaceWith": r"https://\g<host>/\g<login>/\g<group_and_repo>/{linkType}/{branchName}/{path}{lineNumberSection}",
+    "lineNumberSection": "#L{linenumber}",
+    "linkTypeFile": "blob",
+    "linkTypeDir": "tree"
+  }),
+  UrlPattern(**{
+    # https://github.com/okar1/git_web_link.git
+    "name": "github https",
+    "findWhat": r"""^
+        # https
+        (https://)?
+        # github.com
+        (?P<host>github(\w|_|-|\.)+)
+        # :okar1
+        /
+        (?P<login>(\w|_|-|\.)+)
+        /
+        # git_web_link.git
+        (?P<group_and_repo>(\w|_|-|\.|/)+)
+        .git
+        $""",
+    "replaceWith": r"https://\g<host>/\g<login>/\g<group_and_repo>/{linkType}/{branchName}/{path}{lineNumberSection}",
+    "lineNumberSection": "#L{linenumber}",
+    "linkTypeFile": "blob",
+    "linkTypeDir": "tree"
+  }),
+  UrlPattern(**{
+    "name": "stash ssh and https",
     "findWhat": r"""^
         # ssh
         (?P<proto>ssh|http|https)
@@ -30,10 +74,12 @@ urlPatterns=[
         .git
         $""",
     "replaceWith": r"https://\g<host>/projects/\g<project>/repos/\g<group_and_repo>/browse/{path}?at=refs%2Fheads%2F{branchName}{lineNumberSection}",
-    "lineNumberSection": "#{linenumber}"
+    "lineNumberSection": "#{linenumber}",
+    "linkTypeFile": None,
+    "linkTypeDir": None
   }),
   UrlPattern(**{
-    # gitlab pattern
+    "name": "gitlab ssh and https",
     "findWhat": r"""^
         # ssh
         (?P<proto>ssh|http|https)
@@ -52,8 +98,10 @@ urlPatterns=[
         (?P<group_and_repo>(\w|_|-|\.|/)+)
         .git
         $""",
-    "replaceWith": r"https://\g<host>/\g<project>/\g<group_and_repo>/-/blob/{branchName}/{path}{lineNumberSection}",
-    "lineNumberSection": "#L{linenumber}"
+    "replaceWith": r"https://\g<host>/\g<project>/\g<group_and_repo>/-/{linkType}/{branchName}/{path}{lineNumberSection}",
+    "lineNumberSection": "#L{linenumber}",
+    "linkTypeFile": "blob",
+    "linkTypeDir": "tree"
   }),
 ]
 
@@ -93,17 +141,18 @@ if not absPath.startswith(repo.working_dir):
 relativePath='' if absPath==repo.working_dir else absPath[len(repo.working_dir)+1:]
 banchName = repo.active_branch.name
 
-for findWhat, replaceWith, lineNumberSection in urlPatterns:
+for patternName, findWhat, replaceWith, linkTypeFile, linkTypeDir, lineNumberSection in urlPatterns:
   webUrl = re.sub(findWhat, replaceWith, remoteUrl, flags=re.VERBOSE)
   if webUrl != remoteUrl:
     # replacement found
     webUrl = webUrl.format(
       branchName = banchName,
       path = relativePath,
-      lineNumberSection = lineNumberSection.format(linenumber = lineToHighlight) if lineToHighlight else ''
+      lineNumberSection = lineNumberSection.format(linenumber = lineToHighlight) if lineToHighlight else '',
+      linkType = linkTypeFile if os.path.isfile(absPath) else linkTypeDir
     )
     print("found remote url", remoteUrl)
-    print("converted to web url", webUrl)
+    print(f'converted to web url using pattern "{patternName}":', webUrl)
     webbrowser.open(webUrl)
     break
 else:
