@@ -6,10 +6,9 @@ import re
 from collections import namedtuple
 import webbrowser
 
-UrlPattern=namedtuple('UrlPattern','name findWhat replaceWith linkTypeFile linkTypeDir lineNumberSection')
 
 urlPatterns=[
-  UrlPattern(**{
+  {
     # git@github.com:okar1/git_web_link.git
     "name": "github ssh",
     "findWhat": r"""^
@@ -31,8 +30,8 @@ urlPatterns=[
     "lineNumberSection": "#L{linenumber}",
     "linkTypeFile": "blob",
     "linkTypeDir": "tree"
-  }),
-  UrlPattern(**{
+  },
+  {
     # https://github.com/okar1/git_web_link.git
     "name": "github https",
     "findWhat": r"""^
@@ -52,8 +51,8 @@ urlPatterns=[
     "lineNumberSection": "#L{linenumber}",
     "linkTypeFile": "blob",
     "linkTypeDir": "tree"
-  }),
-  UrlPattern(**{
+  },
+  {
     "name": "stash ssh and https",
     "findWhat": r"""^
         # ssh
@@ -77,8 +76,8 @@ urlPatterns=[
     "lineNumberSection": "#{linenumber}",
     "linkTypeFile": None,
     "linkTypeDir": None
-  }),
-  UrlPattern(**{
+  },
+  {
     "name": "gitlab ssh and https",
     "findWhat": r"""^
         # ssh
@@ -102,7 +101,7 @@ urlPatterns=[
     "lineNumberSection": "#L{linenumber}",
     "linkTypeFile": "blob",
     "linkTypeDir": "tree"
-  }),
+  },
 ]
 
 
@@ -141,7 +140,10 @@ if not absPath.startswith(repo.working_dir):
 relativePath='' if absPath==repo.working_dir else absPath[len(repo.working_dir)+1:]
 banchName = repo.active_branch.name
 
-for patternName, findWhat, replaceWith, linkTypeFile, linkTypeDir, lineNumberSection in urlPatterns:
+
+UrlPattern=namedtuple('UrlPattern','name findWhat replaceWith linkTypeFile linkTypeDir lineNumberSection')
+
+for patternName, findWhat, replaceWith, linkTypeFile, linkTypeDir, lineNumberSection in map(lambda a: UrlPattern(**a), urlPatterns):
   webUrl = re.sub(findWhat, replaceWith, remoteUrl, flags=re.VERBOSE)
   if webUrl != remoteUrl:
     # replacement found
