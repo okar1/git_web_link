@@ -1,2 +1,1 @@
-opens git site for current local repo.
-Stash, Gitlab, Github are supported
+Script opens gitlab/github/stash/etc web page for current local file/dir within your repo.

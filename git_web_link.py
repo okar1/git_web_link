@@ -1,15 +1,19 @@
+# Script opens gitlab/github/stash/etc web page for current local file/dir within your repo.
+
+
+# use "pip install GitPython" to install this external module
+from git import Repo
 import os
 import sys
-from git import Repo
-from git.exc import InvalidGitRepositoryError,NoSuchPathError
+from git.exc import InvalidGitRepositoryError, NoSuchPathError
 import re
 from collections import namedtuple
 import webbrowser
 
-
+# Configurable regex patterns for subversion systems. First matched pattern will be used.
 urlPatterns=[
   {
-    # git@github.com:okar1/git_web_link.git
+    # like git@github.com:okar1/git_web_link.git
     "name": "github ssh",
     "findWhat": r"""^
         # ssh
@@ -32,7 +36,7 @@ urlPatterns=[
     "linkTypeDir": "tree"
   },
   {
-    # https://github.com/okar1/git_web_link.git
+    # like https://github.com/okar1/git_web_link.git
     "name": "github https",
     "findWhat": r"""^
         # https
@@ -117,7 +121,7 @@ try:
   repo=Repo(absPath, search_parent_directories=True)
 except (InvalidGitRepositoryError, NoSuchPathError):
   print(f"ERROR specified path {absPath} is not a part of valid git repository")
-  print(f'''This script opens gitlab site for local file or directory
+  print(f'''Script opens gitlab/github/stash/etc web page for current local file/dir within your repo.
 Usage: {os.path.basename(sys.argv[0])} [path] [line_number]
   path: local file or directory within git repo (default is current dir)
   line_number: file line number to highlight (default in no highlight)''')
