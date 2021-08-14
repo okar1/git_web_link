@@ -9,6 +9,7 @@ from git.exc import InvalidGitRepositoryError, NoSuchPathError
 import re
 from collections import namedtuple
 import webbrowser
+import argparse
 
 # Configurable regex patterns for subversion systems. First matched pattern will be used.
 urlPatterns=[
@@ -109,35 +110,36 @@ urlPatterns=[
 ]
 
 
-arg1=sys.argv[1] if len(sys.argv)>=2 else os.getcwd()
-arg2=sys.argv[2] if len(sys.argv)>=3 else ''
+parser = argparse.ArgumentParser(description = 'Script opens gitlab/github/stash/etc web page for current local file/dir within your repo.')
+parser.add_argument('path', type = str, nargs = '?', default = os.getcwd(), help = 'path to local file or dir within repo')
+parser.add_argument('lineToHighlight', type = int, nargs = '?', default = 0, help = 'line number to highlight in git site')
 
-absPath=(os.path.abspath(arg1))
-lineToHighlight = False
-if os.path.isfile(absPath) and arg2.isdigit():
-    lineToHighlight=arg2
+args = parser.parse_args()
+
+absPath = os.path.abspath(args.path)
+lineToHighlight = args.lineToHighlight if os.path.isfile(absPath) else 0
 
 try:
   repo=Repo(absPath, search_parent_directories=True)
 except (InvalidGitRepositoryError, NoSuchPathError):
+  parser.print_help()
   print(f"ERROR specified path {absPath} is not a part of valid git repository")
-  print(f'''Script opens gitlab/github/stash/etc web page for current local file/dir within your repo.
-Usage: {os.path.basename(sys.argv[0])} [path] [line_number]
-  path: local file or directory within git repo (default is current dir)
-  line_number: file line number to highlight (default in no highlight)''')
   sys.exit(1)
 
 if not repo.remotes:
+  parser.print_help()
   print('ERROR current repo does not have any remote origin')
   sys.exit(1)
 
 remoteUrls = [url for url in [remote.url for remote in repo.remotes]]
 if not remoteUrls:
+  parser.print_help()
   print('ERROR cant find any url in repo remotes list, check repo coonfig')
   sys.exit(1)
 remoteUrl = remoteUrls[0]
 
 if not absPath.startswith(repo.working_dir):
+  parser.print_help()
   print(f'ERROR something is wrong. Path to process "{absPath}" is not starting from git working dir "{repo.working_dir}"')
   sys.exit(1)
 
